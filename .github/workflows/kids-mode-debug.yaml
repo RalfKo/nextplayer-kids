@@ -33,6 +33,6 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: nextplayer-kids-debug-apks
-          path: app/build/outputs/apk/debug/*.apk
+          name: nextplayer-kids-arm64-v8a-debug
+          path: app/build/outputs/apk/debug/app-arm64-v8a-debug.apk
           if-no-files-found: warn

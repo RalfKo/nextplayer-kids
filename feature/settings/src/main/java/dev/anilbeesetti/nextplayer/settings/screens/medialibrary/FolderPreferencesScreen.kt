@@ -3,9 +3,12 @@ package dev.anilbeesetti.nextplayer.settings.screens.medialibrary
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.item
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -15,6 +18,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Switch
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -96,12 +101,47 @@ private fun FolderPreferencesContent(
                     contentPadding = innerPadding + PaddingValues(horizontal = 16.dp),
                     verticalArrangement = Arrangement.spacedBy(ListItemDefaults.SegmentedGap),
                 ) {
+                    item {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 12.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                        ) {
+                            Text(
+                                text = stringResource(id = R.string.restrict_to_selected_folders),
+                                style = MaterialTheme.typography.titleMedium,
+                            )
+                            Switch(
+                                checked = uiState.preferences.restrictToSelectedFolders,
+                                onCheckedChange = { onEvent(FolderPreferencesUiEvent.ToggleRestrictMode) },
+                            )
+                        }
+                        Text(
+                            text = stringResource(id = R.string.restrict_to_selected_folders_desc),
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                    }
+
+                    val restrictMode = uiState.preferences.restrictToSelectedFolders
                     itemsIndexed(uiState.foldersDataState.value) { index, folder ->
                         SelectablePreference(
                             title = folder.name,
                             description = folder.path,
-                            selected = folder.path in uiState.preferences.excludeFolders,
-                            onClick = { onEvent(FolderPreferencesUiEvent.UpdateExcludeList(folder.path)) },
+                            selected = if (restrictMode) {
+                                folder.path in uiState.preferences.allowedFolders
+                            } else {
+                                folder.path in uiState.preferences.excludeFolders
+                            },
+                            onClick = {
+                                onEvent(
+                                    if (restrictMode) {
+                                        FolderPreferencesUiEvent.UpdateAllowList(folder.path)
+                                    } else {
+                                        FolderPreferencesUiEvent.UpdateExcludeList(folder.path)
+                                    },
+                                )
+                            },
                             isFirstItem = index == 0,
                             isLastItem = index == uiState.foldersDataState.value.lastIndex,
                         )

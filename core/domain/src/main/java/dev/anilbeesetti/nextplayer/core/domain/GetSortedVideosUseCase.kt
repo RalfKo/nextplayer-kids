@@ -6,6 +6,7 @@ import dev.anilbeesetti.nextplayer.core.data.repository.MediaRepository
 import dev.anilbeesetti.nextplayer.core.data.repository.PreferencesRepository
 import dev.anilbeesetti.nextplayer.core.model.Sort
 import dev.anilbeesetti.nextplayer.core.model.Video
+import dev.anilbeesetti.nextplayer.core.model.isFolderVisible
 import javax.inject.Inject
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
@@ -24,8 +25,8 @@ class GetSortedVideosUseCase @Inject constructor(
             preferencesRepository.applicationPreferences,
         ) { videoItems, preferences ->
 
-            val nonExcludedVideos = videoItems.filterNot {
-                it.parentPath in preferences.excludeFolders
+            val nonExcludedVideos = videoItems.filter {
+                preferences.isFolderVisible(it.parentPath)
             }
 
             val sort = Sort(by = preferences.sortBy, order = preferences.sortOrder)

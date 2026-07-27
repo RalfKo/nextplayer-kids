@@ -49,6 +49,8 @@ class FolderPreferencesViewModel @Inject constructor(
     fun onEvent(event: FolderPreferencesUiEvent) {
         when (event) {
             is FolderPreferencesUiEvent.UpdateExcludeList -> updateExcludeList(event.path)
+            is FolderPreferencesUiEvent.UpdateAllowList -> updateAllowList(event.path)
+            is FolderPreferencesUiEvent.ToggleRestrictMode -> toggleRestrictMode()
         }
     }
 
@@ -65,6 +67,28 @@ class FolderPreferencesViewModel @Inject constructor(
             }
         }
     }
+
+    private fun updateAllowList(path: String) {
+        viewModelScope.launch {
+            preferencesRepository.updateApplicationPreferences {
+                it.copy(
+                    allowedFolders = if (path in it.allowedFolders) {
+                        it.allowedFolders - path
+                    } else {
+                        it.allowedFolders + path
+                    },
+                )
+            }
+        }
+    }
+
+    private fun toggleRestrictMode() {
+        viewModelScope.launch {
+            preferencesRepository.updateApplicationPreferences {
+                it.copy(restrictToSelectedFolders = !it.restrictToSelectedFolders)
+            }
+        }
+    }
 }
 
 data class FolderPreferencesUiState(
@@ -74,4 +98,6 @@ data class FolderPreferencesUiState(
 
 sealed interface FolderPreferencesUiEvent {
     data class UpdateExcludeList(val path: String) : FolderPreferencesUiEvent
+    data class UpdateAllowList(val path: String) : FolderPreferencesUiEvent
+    data object ToggleRestrictMode : FolderPreferencesUiEvent
 }

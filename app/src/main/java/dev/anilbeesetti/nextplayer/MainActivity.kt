@@ -34,7 +34,6 @@ import androidx.navigation3.ui.NavDisplay
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import dagger.hilt.android.AndroidEntryPoint
 import dev.anilbeesetti.nextplayer.core.common.service.system.SystemService
-import dev.anilbeesetti.nextplayer.core.media.network.proxy.NetworkStreamingProxy
 import dev.anilbeesetti.nextplayer.core.media.services.MediaOperationsService
 import dev.anilbeesetti.nextplayer.core.model.ThemeConfig
 import dev.anilbeesetti.nextplayer.core.ui.theme.NextPlayerTheme
@@ -43,7 +42,6 @@ import dev.anilbeesetti.nextplayer.navigation.NextNavigationRail
 import dev.anilbeesetti.nextplayer.navigation.TopLevelDestination
 import dev.anilbeesetti.nextplayer.navigation.isNavigationBetweenTopLevelDestinations
 import dev.anilbeesetti.nextplayer.navigation.mediaNavGraph
-import dev.anilbeesetti.nextplayer.navigation.networkNavGraph
 import dev.anilbeesetti.nextplayer.navigation.rememberResponsiveNavigationSceneDecoratorStrategy
 import dev.anilbeesetti.nextplayer.navigation.rememberTopLevelNavState
 import dev.anilbeesetti.nextplayer.navigation.settingsNavGraph
@@ -59,15 +57,7 @@ class MainActivity : ComponentActivity() {
     @Inject
     lateinit var systemService: SystemService
 
-    @Inject
-    lateinit var networkStreamingProxy: NetworkStreamingProxy
-
     private val viewModel: MainViewModel by viewModels()
-
-    override fun onDestroy() {
-        super.onDestroy()
-        if (isFinishing) networkStreamingProxy.release()
-    }
 
     @OptIn(ExperimentalPermissionsApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -127,13 +117,11 @@ class MainActivity : ComponentActivity() {
                     )
 
                     val mediaStack = navState.backStacks.getValue(TopLevelDestination.MEDIA.route)
-                    val networkStack = navState.backStacks.getValue(TopLevelDestination.NETWORK.route)
 
-                    // Media and network entries navigate within their own tab's stack; settings is
-                    // shared, so it navigates within whichever tab it was opened from (the current one).
+                    // Media entries navigate within their own tab's stack; settings is shared, so
+                    // it navigates within whichever tab it was opened from (the current one).
                     val provider = entryProvider {
                         mediaNavGraph(context = this@MainActivity, backStack = mediaStack)
-                        networkNavGraph(context = this@MainActivity, backStack = networkStack)
                         settingsNavGraph(backStack = navState.currentStack)
                     }
 

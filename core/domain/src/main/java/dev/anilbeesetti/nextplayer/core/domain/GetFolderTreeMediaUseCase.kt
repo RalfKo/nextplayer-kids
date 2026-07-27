@@ -9,6 +9,8 @@ import dev.anilbeesetti.nextplayer.core.data.repository.PreferencesRepository
 import dev.anilbeesetti.nextplayer.core.model.Folder
 import dev.anilbeesetti.nextplayer.core.model.Sort
 import dev.anilbeesetti.nextplayer.core.model.Video
+import dev.anilbeesetti.nextplayer.core.model.ApplicationPreferences
+import dev.anilbeesetti.nextplayer.core.model.isFolderVisible
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
@@ -35,13 +37,13 @@ class GetFolderTreeMediaUseCase @Inject constructor(
             mediaRepository.observeVideos(folderPath),
             preferencesRepository.applicationPreferences,
         ) { videos, preferences ->
-            val included = videos.filterNot { it.parentPath in preferences.excludeFolders }
+            val included = videos.filter { preferences.isFolderVisible(it.parentPath) }
             val sort = Sort(by = preferences.sortBy, order = preferences.sortOrder)
 
             if (folderPath != null) {
-                mediaUnder(folderPath, included, preferences.excludeFolders, sort)
+                mediaUnder(folderPath, included, preferences, sort)
             } else {
-                topLevelMedia(included, preferences.excludeFolders, sort)
+                topLevelMedia(included, preferences, sort)
             }
         }.flowOn(defaultDispatcher)
     }
@@ -50,24 +52,24 @@ class GetFolderTreeMediaUseCase @Inject constructor(
      * The top level: one folder per storage volume that contains videos, or — when only a single
      * volume has videos — that volume's contents shown directly (no volume wrapper).
      */
-    private fun topLevelMedia(videos: List<Video>, excludedFolders: Collection<String>, sort: Sort): MediaHolder {
+    private fun topLevelMedia(videos: List<Video>, preferences: ApplicationPreferences, sort: Sort): MediaHolder {
         val volumeRoots = videos.mapNotNull { volumeRootOf(it.path) }.distinct()
         if (volumeRoots.size <= 1) {
             val root = volumeRoots.firstOrNull() ?: Environment.getExternalStorageDirectory().path
-            return mediaUnder(root, videos, excludedFolders, sort)
+            return mediaUnder(root, videos, preferences, sort)
         }
         val folders = volumeRoots
-            .filterNot { it in excludedFolders }
+            .filter { preferences.isFolderVisible(it) }
             .map { volumeRoot -> summarize(volumeRoot, videosUnder(volumeRoot, videos)) }
         return MediaHolder(videos = emptyList(), folders = folders.sortedWith(sort.folderComparator()))
     }
 
     /** The videos directly inside [root] plus a [Folder] for each immediate subfolder with videos. */
-    private fun mediaUnder(root: String, videos: List<Video>, excludedFolders: Collection<String>, sort: Sort): MediaHolder {
+    private fun mediaUnder(root: String, videos: List<Video>, preferences: ApplicationPreferences, sort: Sort): MediaHolder {
         val descendants = videosUnder(root, videos)
         val directVideos = descendants.filter { it.parentPath == root }
         val folders = immediateChildFolders(root, descendants)
-            .filterNot { it in excludedFolders }
+            .filter { preferences.isFolderVisible(it) }
             .map { childPath -> summarize(childPath, videosUnder(childPath, descendants)) }
 
         return MediaHolder(

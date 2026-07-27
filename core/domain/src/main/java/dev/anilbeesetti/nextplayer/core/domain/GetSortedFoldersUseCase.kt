@@ -6,6 +6,7 @@ import dev.anilbeesetti.nextplayer.core.data.repository.MediaRepository
 import dev.anilbeesetti.nextplayer.core.data.repository.PreferencesRepository
 import dev.anilbeesetti.nextplayer.core.model.Folder
 import dev.anilbeesetti.nextplayer.core.model.Sort
+import dev.anilbeesetti.nextplayer.core.model.isFolderVisible
 import javax.inject.Inject
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
@@ -25,7 +26,7 @@ class GetSortedFoldersUseCase @Inject constructor(
         ) { folders, preferences ->
 
             val nonExcludedDirectories = folders.filter {
-                it.path !in preferences.excludeFolders
+                preferences.isFolderVisible(it.path)
             }
 
             val sort = Sort(by = preferences.sortBy, order = preferences.sortOrder)

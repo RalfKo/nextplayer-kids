@@ -46,7 +46,6 @@ import androidx.navigation3.scene.Scene
 import dev.anilbeesetti.nextplayer.core.ui.R
 import dev.anilbeesetti.nextplayer.core.ui.components.tvFocusRing
 import dev.anilbeesetti.nextplayer.core.ui.designsystem.NextIcons
-import dev.anilbeesetti.nextplayer.feature.network.navigation.NetworkRoute
 import dev.anilbeesetti.nextplayer.feature.videopicker.navigation.MediaPickerRoute
 
 /**
@@ -59,7 +58,6 @@ enum class TopLevelDestination(
     @StringRes val labelRes: Int,
 ) {
     MEDIA(MediaPickerRoute(), NextIcons.Home, R.string.home),
-    NETWORK(NetworkRoute, NextIcons.Network, R.string.network),
 }
 
 @Composable

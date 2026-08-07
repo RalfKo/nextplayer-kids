@@ -51,6 +51,22 @@ class FolderPreferencesViewModel @Inject constructor(
             is FolderPreferencesUiEvent.UpdateExcludeList -> updateExcludeList(event.path)
             is FolderPreferencesUiEvent.UpdateAllowList -> updateAllowList(event.path)
             is FolderPreferencesUiEvent.ToggleRestrictMode -> toggleRestrictMode()
+            is FolderPreferencesUiEvent.AddAllowedFolder -> addAllowedFolder(event.path)
+        }
+    }
+
+    /**
+     * Adds [path] to the allow list, if not already present. Unlike [updateAllowList] this never
+     * removes it, so it's safe to call from a folder picker where re-picking the same folder
+     * shouldn't toggle it off. Since [dev.anilbeesetti.nextplayer.core.model.isFolderVisible]
+     * matches allowed folders by path prefix, any folder added here also covers all of its
+     * current and future subfolders.
+     */
+    private fun addAllowedFolder(path: String) {
+        viewModelScope.launch {
+            preferencesRepository.updateApplicationPreferences {
+                it.copy(allowedFolders = if (path in it.allowedFolders) it.allowedFolders else it.allowedFolders + path)
+            }
         }
     }
 
@@ -100,4 +116,5 @@ sealed interface FolderPreferencesUiEvent {
     data class UpdateExcludeList(val path: String) : FolderPreferencesUiEvent
     data class UpdateAllowList(val path: String) : FolderPreferencesUiEvent
     data object ToggleRestrictMode : FolderPreferencesUiEvent
+    data class AddAllowedFolder(val path: String) : FolderPreferencesUiEvent
 }

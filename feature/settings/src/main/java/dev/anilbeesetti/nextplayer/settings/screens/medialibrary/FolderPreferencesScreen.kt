@@ -1,5 +1,8 @@
 package dev.anilbeesetti.nextplayer.settings.screens.medialibrary
 
+import android.provider.DocumentsContract
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
@@ -23,6 +26,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import dev.anilbeesetti.nextplayer.settings.utils.rememberTvListFocusRequester
 import dev.anilbeesetti.nextplayer.settings.utils.tvFocusDown
 import dev.anilbeesetti.nextplayer.settings.utils.tvListFocus
@@ -32,13 +36,18 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import dev.anilbeesetti.nextplayer.core.common.extensions.getPath
+import dev.anilbeesetti.nextplayer.core.common.extensions.prettyName
+import dev.anilbeesetti.nextplayer.core.model.Folder
 import dev.anilbeesetti.nextplayer.core.ui.R
 import dev.anilbeesetti.nextplayer.core.ui.base.DataState
+import dev.anilbeesetti.nextplayer.core.ui.components.PreferenceItem
 import dev.anilbeesetti.nextplayer.core.ui.components.NextTopAppBar
 import dev.anilbeesetti.nextplayer.core.ui.components.SelectablePreference
 import dev.anilbeesetti.nextplayer.core.ui.designsystem.NextIcons
 import dev.anilbeesetti.nextplayer.core.ui.extensions.plus
 import dev.anilbeesetti.nextplayer.core.ui.theme.NextPlayerTheme
+import java.io.File
 
 @Composable
 fun FolderPreferencesScreen(
@@ -61,7 +70,22 @@ private fun FolderPreferencesContent(
     onNavigateUp: () -> Unit,
     onEvent: (FolderPreferencesUiEvent) -> Unit,
 ) {
+    val context = LocalContext.current
     val listFocusRequester = rememberTvListFocusRequester()
+
+    val pickFolderLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocumentTree(),
+    ) { treeUri ->
+        if (treeUri == null) return@rememberLauncherForActivityResult
+        val documentUri = DocumentsContract.buildDocumentUriUsingTree(
+            treeUri,
+            DocumentsContract.getTreeDocumentId(treeUri),
+        )
+        context.getPath(documentUri)?.let { path ->
+            onEvent(FolderPreferencesUiEvent.AddAllowedFolder(path))
+        }
+    }
+
     Scaffold(
         topBar = {
             NextTopAppBar(
@@ -93,6 +117,23 @@ private fun FolderPreferencesContent(
             }
 
             is DataState.Success -> {
+                val restrictMode = uiState.preferences.restrictToSelectedFolders
+                val scannedFolders = uiState.foldersDataState.value
+
+                // Folders the user picked via the folder browser that aren't in scannedFolders
+                // themselves (e.g. a parent folder with no videos directly inside it, only in
+                // its subfolders). Shown so they stay visible and removable; isFolderVisible
+                // matches allowed folders by path prefix, so they already cover every current
+                // and future subfolder without needing to be listed individually.
+                val manuallyAddedFolders = if (restrictMode) {
+                    uiState.preferences.allowedFolders
+                        .filterNot { allowed -> scannedFolders.any { it.path == allowed } }
+                        .map { path -> Folder(name = File(path).prettyName, path = path, dateModified = 0L) }
+                } else {
+                    emptyList()
+                }
+                val displayFolders = (scannedFolders + manuallyAddedFolders).sortedBy { it.path }
+
                 LazyColumn(
                     modifier = Modifier
                         .fillMaxSize()
@@ -122,8 +163,21 @@ private fun FolderPreferencesContent(
                         )
                     }
 
-                    val restrictMode = uiState.preferences.restrictToSelectedFolders
-                    itemsIndexed(uiState.foldersDataState.value) { index, folder ->
+                    if (restrictMode) {
+                        item {
+                            PreferenceItem(
+                                title = stringResource(id = R.string.add_folder),
+                                description = stringResource(id = R.string.add_folder_desc),
+                                icon = NextIcons.Add,
+                                enabled = true,
+                                onClick = { pickFolderLauncher.launch(null) },
+                                isFirstItem = true,
+                                isLastItem = displayFolders.isEmpty(),
+                            )
+                        }
+                    }
+
+                    itemsIndexed(displayFolders) { index, folder ->
                         SelectablePreference(
                             title = folder.name,
                             description = folder.path,
@@ -141,8 +195,8 @@ private fun FolderPreferencesContent(
                                     },
                                 )
                             },
-                            isFirstItem = index == 0,
-                            isLastItem = index == uiState.foldersDataState.value.lastIndex,
+                            isFirstItem = index == 0 && !restrictMode,
+                            isLastItem = index == displayFolders.lastIndex,
                         )
                     }
                 }

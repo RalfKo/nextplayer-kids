@@ -101,6 +101,8 @@
     <string name="restrict_to_selected_folders">Kids mode: only selected folders</string>
     <string name="restrict_to_selected_folders_desc">When enabled, only the folders you tick below are ever shown. Everything else stays hidden.</string>
     <string name="allowed_folders_title">Allowed folders</string>
+    <string name="add_folder">Add folder…</string>
+    <string name="add_folder_desc">Pick any folder to allow. Its current and future subfolders are automatically allowed too.</string>
     <string name="settings_locked">Settings locked</string>
     <string name="create_pin_title">Set a settings PIN</string>
     <string name="create_pin_desc">This PIN will be required every time Settings is opened.</string>

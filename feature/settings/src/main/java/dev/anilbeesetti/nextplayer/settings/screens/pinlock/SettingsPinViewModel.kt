@@ -16,6 +16,7 @@ sealed interface PinGateState {
     data object Loading : PinGateState
     data object NoPinConfigured : PinGateState
     data object Locked : PinGateState
+    data object ChangingPin : PinGateState
     data object Unlocked : PinGateState
 }
 
@@ -64,5 +65,21 @@ class SettingsPinViewModel @Inject constructor(
 
     fun clearError() {
         errorInternal.value = null
+    }
+
+    fun startChangePin() {
+        stateInternal.value = PinGateState.ChangingPin
+    }
+
+    fun cancelChangePin() {
+        stateInternal.value = PinGateState.Locked
+    }
+
+    /** Checks [pin] against the currently stored PIN without changing [state]. */
+    fun verifyCurrentPinForChange(pin: String): Boolean {
+        val prefs = preferencesRepository.applicationPreferences.value
+        val salt = prefs.settingsPinSalt
+        val hash = prefs.settingsPinHash
+        return salt != null && hash != null && PinCrypto.verify(pin, salt, hash)
     }
 }

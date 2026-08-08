@@ -1,5 +1,6 @@
 package dev.anilbeesetti.nextplayer.settings.screens.pinlock
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -10,6 +11,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -20,14 +22,23 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import dev.anilbeesetti.nextplayer.core.ui.R
 
 private const val MIN_PIN_LENGTH = 4
 
-/** First-run screen: the parent sets a PIN (entered twice) that will guard Settings from then on. */
+/**
+ * First-run screen: the parent sets a PIN (entered twice) that will guard Settings from then on.
+ * Also reused by [ChangePinScreen] for the "enter a new PIN" half of changing an existing one,
+ * via [titleRes]/[descRes].
+ */
 @Composable
-fun CreatePinScreen(onPinCreated: (String) -> Unit) {
+fun CreatePinScreen(
+    titleRes: Int = R.string.create_pin_title,
+    descRes: Int = R.string.create_pin_desc,
+    onPinCreated: (String) -> Unit,
+) {
     var firstEntry by remember { mutableStateOf<String?>(null) }
     var pin by remember { mutableStateOf("") }
     var mismatch by remember { mutableStateOf(false) }
@@ -57,11 +68,11 @@ fun CreatePinScreen(onPinCreated: (String) -> Unit) {
             verticalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterVertically),
         ) {
             Text(
-                text = stringResource(if (firstEntry == null) R.string.create_pin_title else R.string.confirm_pin_title),
+                text = stringResource(if (firstEntry == null) titleRes else R.string.confirm_pin_title),
                 style = MaterialTheme.typography.headlineSmall,
             )
             if (firstEntry == null) {
-                Text(text = stringResource(R.string.create_pin_desc), style = MaterialTheme.typography.bodyMedium)
+                Text(text = stringResource(descRes), style = MaterialTheme.typography.bodyMedium)
             }
             if (mismatch) {
                 Text(
@@ -90,7 +101,12 @@ fun CreatePinScreen(onPinCreated: (String) -> Unit) {
 
 /** Shown every time Settings is opened once a PIN is configured. */
 @Composable
-fun EnterPinScreen(error: String?, onSubmit: (String) -> Unit, onErrorConsumed: () -> Unit) {
+fun EnterPinScreen(
+    error: String?,
+    onSubmit: (String) -> Unit,
+    onErrorConsumed: () -> Unit,
+    onChangePinClick: () -> Unit,
+) {
     var pin by remember { mutableStateOf("") }
 
     Scaffold(containerColor = MaterialTheme.colorScheme.surfaceContainer) { innerPadding ->
@@ -103,6 +119,14 @@ fun EnterPinScreen(error: String?, onSubmit: (String) -> Unit, onErrorConsumed: 
         ) {
             Text(text = stringResource(R.string.enter_pin_title), style = MaterialTheme.typography.headlineSmall)
             Text(text = stringResource(R.string.enter_pin_desc), style = MaterialTheme.typography.bodyMedium)
+            Text(
+                text = stringResource(R.string.change_pin),
+                style = MaterialTheme.typography.bodyMedium.copy(
+                    color = MaterialTheme.colorScheme.primary,
+                    textDecoration = TextDecoration.Underline,
+                ),
+                modifier = Modifier.clickable(onClick = onChangePinClick),
+            )
             OutlinedTextField(
                 value = pin,
                 onValueChange = {
@@ -119,6 +143,73 @@ fun EnterPinScreen(error: String?, onSubmit: (String) -> Unit, onErrorConsumed: 
                 onClick = { onSubmit(pin) },
             ) {
                 Text(text = stringResource(R.string.unlock))
+            }
+        }
+    }
+}
+
+/**
+ * Reached via the "Change PIN" link on [EnterPinScreen]. Requires re-entering the current PIN
+ * before handing off to [CreatePinScreen]'s double-entry flow for the new one, so a child who
+ * doesn't know the PIN can't reset it themselves.
+ */
+@Composable
+fun ChangePinScreen(
+    onVerifyCurrentPin: (String) -> Boolean,
+    onPinChanged: (String) -> Unit,
+    onCancel: () -> Unit,
+) {
+    var verified by remember { mutableStateOf(false) }
+
+    if (verified) {
+        CreatePinScreen(
+            titleRes = R.string.new_pin_title,
+            descRes = R.string.new_pin_desc,
+            onPinCreated = onPinChanged,
+        )
+        return
+    }
+
+    var currentPin by remember { mutableStateOf("") }
+    var currentPinError by remember { mutableStateOf(false) }
+
+    Scaffold(containerColor = MaterialTheme.colorScheme.surfaceContainer) { innerPadding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .padding(24.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterVertically),
+        ) {
+            Text(text = stringResource(R.string.enter_current_pin_title), style = MaterialTheme.typography.headlineSmall)
+            if (currentPinError) {
+                Text(text = stringResource(R.string.wrong_pin), color = MaterialTheme.colorScheme.error)
+            }
+            OutlinedTextField(
+                value = currentPin,
+                onValueChange = {
+                    currentPin = it.filter(Char::isDigit)
+                    currentPinError = false
+                },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
+                visualTransformation = PasswordVisualTransformation(),
+                isError = currentPinError,
+            )
+            Button(
+                enabled = currentPin.isNotEmpty(),
+                onClick = {
+                    if (onVerifyCurrentPin(currentPin)) {
+                        verified = true
+                    } else {
+                        currentPinError = true
+                        currentPin = ""
+                    }
+                },
+            ) {
+                Text(text = stringResource(R.string.continue_action))
+            }
+            TextButton(onClick = onCancel) {
+                Text(text = stringResource(R.string.cancel))
             }
         }
     }

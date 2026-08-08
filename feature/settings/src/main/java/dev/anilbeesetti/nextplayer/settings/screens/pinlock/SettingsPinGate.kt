@@ -23,6 +23,12 @@ fun SettingsPinGate(content: @Composable () -> Unit) {
             error = error,
             onSubmit = viewModel::attemptUnlock,
             onErrorConsumed = viewModel::clearError,
+            onChangePinClick = viewModel::startChangePin,
+        )
+        PinGateState.ChangingPin -> ChangePinScreen(
+            onVerifyCurrentPin = viewModel::verifyCurrentPinForChange,
+            onPinChanged = viewModel::createPin,
+            onCancel = viewModel::cancelChangePin,
         )
         PinGateState.Unlocked -> content()
     }

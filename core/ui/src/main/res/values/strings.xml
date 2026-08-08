@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name" translatable="false">Next Player</string>
+    <string name="app_name" translatable="false">Video Player Kids</string>
     <string name="about_description">Version, support, credits</string>
     <string name="about_name">About</string>
     <string name="appearance_description">Adjust the app to your liking</string>
@@ -113,6 +113,10 @@
     <string name="wrong_pin">Wrong PIN</string>
     <string name="unlock">Unlock</string>
     <string name="continue_action">Continue</string>
+    <string name="change_pin">Change PIN</string>
+    <string name="enter_current_pin_title">Enter current PIN</string>
+    <string name="new_pin_title">Choose a new PIN</string>
+    <string name="new_pin_desc">This replaces your current settings PIN.</string>
     <string name="video">Video</string>
     <string name="videos">Videos</string>
     <string name="screen_rotation">Screen Rotation</string>

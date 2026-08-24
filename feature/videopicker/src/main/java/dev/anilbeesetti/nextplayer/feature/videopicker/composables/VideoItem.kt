@@ -271,7 +271,7 @@ private fun ThumbnailView(
         if (preferences.showPlayedProgress && video.playedPercentage != null) {
             Box(
                 modifier = Modifier
-                    .height(4.dp)
+                    .height(8.dp)
                     .fillMaxWidth()
                     .align(Alignment.BottomCenter),
             ) {
